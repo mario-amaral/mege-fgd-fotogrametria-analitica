@@ -1,0 +1,4 @@
+Orientação externa da foto 0006: X= -89994.49, Y= -101072.93, Z= 1095.32, omega = -0.68, phi = -0.21, kappa = 15.79
+Coordenadas obj do ponto A: X= -89590.51, Y= -101281.62, Z= 76.48 
+Coordenadas obj do ponto B: X= -89592.69, Y= -101405.55, Z= 66.79 
+Coordenadas obj do ponto C: X= -89521.52, Y= -101410.09, Z= 63.72 

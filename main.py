@@ -10,11 +10,11 @@ import numpy as np
 
 def main():
     """O programa escreve os valores da orientação externa da foto 0006 e das
-       coordenadas dos novos pontos para um ficheiro de resultados em txt na
-       mesma diretoria em que o programa é invocado.
+        coordenadas dos novos pontos para um ficheiro de resultados em txt na
+        mesma diretoria em que o programa é invocado.
     """
     
-    output_filename = 'resultados.txt'
+    output_filename = 'resultados.txt' # nome do ficheiro para escrita dos resultados finais (na mesma diretoria do programa)
     
     # Dados das coordenadas foto, coordenadas objeto e orientação das fotos
     # são guardados em dicionários python para fácil referência.
@@ -65,15 +65,13 @@ def main():
                                     [93.223]]),
                  '6000' : np.array([[-89696.832], 
                                     [-101008.761], 
-                                    [95.277]])
+                                    [95.277]]),
+                 'A' : np.zeros((3,1)), #desconhecidos à partida
+                 'B' : np.zeros((3,1)), #desconhecidos à partida
+                 'C' : np.zeros((3,1)), #desconhecidos à partida
                  }
     
-    orient_photo = {'0006' : np.array([[-89992.722], # Valores obtidos através do ajuste realizado no Photomod (ver explicação abaixo)
-                                       [-101070.084], 
-                                       [1093.333], 
-                                       [-1.8277], 
-                                       [-0.3665], 
-                                       [16.9029]]),
+    orient_photo = {'0006' : np.zeros((6,1)), #desconhecida à partida
                     '0007' : np.array([[-89711.171], 
                                        [-100989.573], 
                                        [1094.305], 
@@ -82,8 +80,6 @@ def main():
                                        [15.7612]])    
                     }
     c = 120 # distância focal (em mm)
-    
-    deg_to_rad_conv_coef = 3.141/180.0 # factor de conversão de graus para rad
     
     ###
     ### 0. Funções auxiliares para cálculo de coordenadas com base nas ECOL
@@ -96,9 +92,10 @@ def main():
             Ângulos convertidos para radianos
         """
         
-        omega = OE[3,0] * deg_to_rad_conv_coef
-        phi = OE[4,0] * deg_to_rad_conv_coef
-        kappa = OE[5,0] * deg_to_rad_conv_coef
+        #ângulos convertidos para radianos
+        omega = np.radians(OE[3,0]) 
+        phi = np.radians(OE[4,0]) 
+        kappa = np.radians(OE[5,0]) 
         
         return np.array([[np.cos(phi) * np.cos(kappa), - np.cos(phi) * np.sin(kappa), np.sin(phi)],
                          [np.cos(omega) * np.sin(kappa) + np.sin(omega) * np.sin(phi) * np.cos(kappa), np.cos(omega) * np.cos(kappa) - np.sin(omega) * np.sin(phi) * np.sin(kappa), - np.sin(omega) * np.cos(phi)],
@@ -142,21 +139,24 @@ def main():
                          [y_o]])
     
     
-    def print_coord(OE, photo_id, list_points, labels, output_filename):
+    def print_coord(output_filename):
         """ Escreve para ficheiro as coordenadas da orientação externa e coord objeto dos pontos novos com a designação
             dada por label
-        """        
+        """
+        photo_id = '0006'
+        list_point_ids = ['A','B','C']
+            
         with open(output_filename, 'w') as file:
             
-            XO, YO, ZO, omega, phi, kappa = OE[:,0]
+            XO, YO, ZO, omega, phi, kappa = orient_photo[photo_id][:,0]
             output = 'Orientação externa da foto ' + photo_id + \
                   ': X= {0:1.2f}, Y= {1:1.2f}, Z= {2:1.2f}, omega = {3:1.2f}, phi = {4:1.2f}, kappa = {5:1.2f}'.format(XO,YO,ZO,omega,phi,kappa)
             
             file.write(output + "\n")
             
-            for point in list_points:
-                X, Y, Z = point[:,0]
-                output = 'Coordenadas obj do ponto ' + labels[0] + ': X= {0:1.2f}, Y= {1:1.2f}, Z= {2:1.2f} '.format(X,Y,Z)        
+            for point_id in list_point_ids:
+                X, Y, Z = coord_obj[point_id][:,0]
+                output = 'Coordenadas obj do ponto ' + point_id + ': X= {0:1.2f}, Y= {1:1.2f}, Z= {2:1.2f} '.format(X,Y,Z)
                 file.write(output + "\n")
     
     ###
@@ -194,7 +194,8 @@ def main():
         
         X,Y,Z = P[:,0]    
         XO,YO,ZO = OE[:3,0]
-        kappa = OE[5,0] * deg_to_rad_conv_coef
+        
+        kappa = np.radians(OE[5,0])
     
         dx_dXO = -(c/D**2) * (R[0,2]*Nx - R[0,0]*D)
         dy_dXO = -(c/D**2) * (R[0,2]*Ny - R[0,1]*D)
@@ -205,11 +206,11 @@ def main():
         dx_dZO = -(c/D**2) * (R[2,2]*Nx - R[2,0]*D)        
         dy_dZO = -(c/D**2) * (R[2,2]*Ny - R[2,1]*D)
         
-        dx_domega = -(c/D) * ((Y-YO)*R[2,2] - (Z-ZO)*R[1,2]*(Nx/D) - (Y-YO)*R[2,0] + (Z-ZO)*R[1,0])
-        dy_domega = -(c/D) * ((Y-YO)*R[2,2] - (Z-ZO)*R[1,2]*(Ny/D) - (Y-YO)*R[2,1] + (Z-ZO)*R[1,1])
+        dx_domega = -(c/D) * (((Y-YO)*R[2,2] - (Z-ZO)*R[1,2])*(Nx/D) - (Y-YO)*R[2,0] + (Z-ZO)*R[1,0])
+        dy_domega = -(c/D) * (((Y-YO)*R[2,2] - (Z-ZO)*R[1,2])*(Ny/D) - (Y-YO)*R[2,1] + (Z-ZO)*R[1,1])
         
-        dx_dphi = -(c/D) * ((Nx*np.cos(kappa) - Ny*np.sin(kappa))*(Nx/D) + D*np.cos(kappa))
-        dy_dphi =  (c/D) * ((Nx*np.cos(kappa) - Ny*np.sin(kappa))*(Ny/D) - D*np.sin(kappa))
+        dx_dphi = (c/D) * ((Nx*np.cos(kappa) - Ny*np.sin(kappa))*(Nx/D) + D*np.cos(kappa))
+        dy_dphi = (c/D) * ((Nx*np.cos(kappa) - Ny*np.sin(kappa))*(Ny/D) - D*np.sin(kappa))
         
         dx_dkappa = -(c/D) * Ny
         dy_dkappa =  (c/D) * Nx
@@ -253,7 +254,7 @@ def main():
     delta_X_track = np.zeros((6,1)) #array para registar iterações de delta_X
     OE_track = np.zeros((6,1)) #array para registar iterações de OE aproximado
     
-    for i in range(400):
+    for i in range(100): # definimos arbitrariamente um limite de 100 iterações, sabendo que há convergência antes disso
     
         A = np.vstack((get_A_orient_ext(OE, point1),
                        get_A_orient_ext(OE, point2),
@@ -268,14 +269,14 @@ def main():
         
         delta_X = np.linalg.inv(N) @ h 
         
-        if abs(delta_X[0,0]) < 0.1: break
+        if abs(delta_X[0,0]) < 0.1: break # o for loop é interrompido para um |delta_X| inferior a 10cm
         
         OE = OE - delta_X
           
         delta_X_track = np.hstack((delta_X_track, delta_X))
         OE_track = np.hstack((OE_track, OE))
         
-    OE_0006 = OE ## variável guardada para output no fim do programa
+    orient_photo['0006'] = OE ## variável guardada para output no fim do programa
     
     ## Os valores de delta_X não convergem para zero e infelizmente são diferentes
     ## conforme diferentes combinações de pontos.
@@ -384,93 +385,40 @@ def main():
     
     ## Em cada caso a convergência obteve-se rapidamente, dentro de 20 iterações
     
-    new_point_id = 'A'
     P_aprox = get_P_init('0006', '0007')
     
     delta_X_track = np.zeros(P_aprox.shape) #array para registar iterações de delta_X
     P_aprox_track = np.zeros(P_aprox.shape) #array para registar iterações das coordenadas do ponto aproximado
     
-    for i in range(20):
+    # list_new_points = [coord_obj['A'], coord_obj['B'], coord_obj['C']]
     
-        A = np.vstack((get_A_new_P('0006', P_aprox),
-                        get_A_new_P('0007', P_aprox)))
-        
-        delta_l = np.vstack((get_delta_l_new_P('0006', new_point_id, P_aprox),
-                              get_delta_l_new_P('0007', new_point_id, P_aprox)))
-        
-        N = np.transpose(A) @ A
-        h = np.transpose(A) @ delta_l
-        
-        delta_X = np.linalg.inv(N) @ h 
-        
-        P_aprox = P_aprox - delta_X
-        
-        delta_X_track = np.hstack((delta_X_track, delta_X))
-        P_aprox_track = np.hstack((P_aprox_track, P_aprox))
+    list_new_point_ids = ['A', 'B', 'C']
     
-    PontoA = P_aprox
+    for point_id in list_new_point_ids:
         
-    ## 2.3 Determinação das coordenadas objeto do novo ponto B
-    
-    new_point_id = 'B'
-    P_aprox = get_P_init('0006', '0007')
-    
-    delta_X_track = np.zeros(P_aprox.shape)
-    P_aprox_track = np.zeros(P_aprox.shape)
-    
-    for i in range(20):
-    
-        A = np.vstack((get_A_new_P('0006', P_aprox),
-                        get_A_new_P('0007', P_aprox)))
+        for i in range(100): # definimos arbitrariamente um limite de 100 iterações, sabendo que há convergência antes disso
         
-        delta_l = np.vstack((get_delta_l_new_P('0006', new_point_id, P_aprox),
-                              get_delta_l_new_P('0007', new_point_id, P_aprox)))
+            A = np.vstack((get_A_new_P('0006', P_aprox),
+                           get_A_new_P('0007', P_aprox)))
+            
+            delta_l = np.vstack((get_delta_l_new_P('0006', point_id, P_aprox),
+                                 get_delta_l_new_P('0007', point_id, P_aprox)))
+            
+            N = np.transpose(A) @ A
+            h = np.transpose(A) @ delta_l
+            
+            delta_X = np.linalg.inv(N) @ h 
+            
+            if abs(delta_X[0,0]) < 0.1: break # o for loop é interrompido para um |delta_X| inferior a 10cm
+            
+            P_aprox = P_aprox - delta_X
+            
+            delta_X_track = np.hstack((delta_X_track, delta_X))
+            P_aprox_track = np.hstack((P_aprox_track, P_aprox))
         
-        N = np.transpose(A) @ A
-        h = np.transpose(A) @ delta_l
-        
-        delta_X = np.linalg.inv(N) @ h 
-        
-        P_aprox = P_aprox - delta_X
-        
-        delta_X_track = np.hstack((delta_X_track, delta_X))
-        P_aprox_track = np.hstack((P_aprox_track, P_aprox))
+        coord_obj[point_id]= P_aprox
     
-    PontoB = P_aprox
-        
-    ## 2.4 Determinação das coordenadas objeto do novo ponto C
-    
-    new_point_id = 'C'
-    P_aprox = get_P_init('0006', '0007')
-    
-    delta_X_track = np.zeros(P_aprox.shape)
-    P_aprox_track = np.zeros(P_aprox.shape)
-    
-    for i in range(20):
-    
-        A = np.vstack((get_A_new_P('0006', P_aprox),
-                        get_A_new_P('0007', P_aprox)))
-        
-        delta_l = np.vstack((get_delta_l_new_P('0006', new_point_id, P_aprox),
-                              get_delta_l_new_P('0007', new_point_id, P_aprox)))
-        
-        N = np.transpose(A) @ A
-        h = np.transpose(A) @ delta_l
-        
-        delta_X = np.linalg.inv(N) @ h 
-        
-        P_aprox = P_aprox - delta_X
-        
-        delta_X_track = np.hstack((delta_X_track, delta_X))
-        P_aprox_track = np.hstack((P_aprox_track, P_aprox))
-    
-    PontoC = P_aprox
-    
-    
-    ## Para finalizar, imprimimos as coordenadas da orientação externa da foto 0006
-    ## e dos pontos novos
-    
-    print_coord(OE_0006, '0006', [PontoA, PontoB, PontoC], ['A', 'B', 'C'], output_filename)
+    print_coord(output_filename)
 
 
 if __name__ == "__main__":
