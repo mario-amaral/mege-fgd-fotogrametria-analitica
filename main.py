@@ -278,18 +278,13 @@ def main():
         
     orient_photo['0006'] = OE ## variável guardada para output no fim do programa
     
-    ## Os valores de delta_X não convergem para zero e infelizmente são diferentes
-    ## conforme diferentes combinações de pontos.
-    ## Não consigo entender onde poderá estar o problema, depois de múltiplos testes
-    ## e revisões do código. 
-    ## Como não consegui obter convergência nos valores de OE para a foto 0006, para a
-    ## etapa seguinte, optei por utilizar os valores de orientação externa da foto
-    ## 0006 obtidos no exercício com o Photomod.
+    ## A orientação externa da foto 0006 é guardada no dicionário python e utilizada na fase seguinte do projeto, para 
+    ## determinar as coordenadas dos novos pontos A, B e C
     
         
     ###
     ### 2. Determinação das coordenadas objeto dos novos pontos A, B e C por interseção espacial
-    ### direta
+    ### direta (uma vez conhecidas as orientações externas das duas fotos do modelo)
     ###
     
     ###
@@ -378,23 +373,15 @@ def main():
         return np.array([[dx_dX, dx_dY, dx_dZ],
                          [dy_dX, dy_dY, dy_dZ]])
     
-    ## 2.2 Determinação das coordenadas objeto do novo ponto A
-    
-    ## Atendendo a que não se consegue convergência na determinação da orientação externa da 
-    ## foto 0006 no passo anterior, utiliza-se aqui o valor de OE obtido através do Photomod.
-    
-    ## Em cada caso a convergência obteve-se rapidamente, dentro de 20 iterações
     
     P_aprox = get_P_init('0006', '0007')
     
     delta_X_track = np.zeros(P_aprox.shape) #array para registar iterações de delta_X
     P_aprox_track = np.zeros(P_aprox.shape) #array para registar iterações das coordenadas do ponto aproximado
     
-    # list_new_points = [coord_obj['A'], coord_obj['B'], coord_obj['C']]
+    list_new_point_ids = ['A', 'B', 'C'] # lista dos pontos cujas coord objeto pretendemos determinar
     
-    list_new_point_ids = ['A', 'B', 'C']
-    
-    for point_id in list_new_point_ids:
+    for point_id in list_new_point_ids: # corremos o for loop para cada ponto na lista: A, B e C
         
         for i in range(100): # definimos arbitrariamente um limite de 100 iterações, sabendo que há convergência antes disso
         
@@ -416,7 +403,9 @@ def main():
             delta_X_track = np.hstack((delta_X_track, delta_X))
             P_aprox_track = np.hstack((P_aprox_track, P_aprox))
         
-        coord_obj[point_id]= P_aprox
+        coord_obj[point_id]= P_aprox # guardamos as coordenadas na respetiva entrada do dicionário Python
+    
+    ## Finalmente escrevemos os resultados para um ficheiro txt:
     
     print_coord(output_filename)
 
